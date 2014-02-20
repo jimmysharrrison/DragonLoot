@@ -1,5 +1,6 @@
 ## Title: Dragon Loot
 ## APIVersion: 100000
+## SavedVariables: DragonLoot_Variables
 
 DragonLoot.lua
 DragonLoot.xml

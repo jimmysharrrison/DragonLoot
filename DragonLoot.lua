@@ -26,15 +26,33 @@ TODO:
 function DragonLootLoad()
 
 --Setting Global Variables
-	showgold = true
-	grouploot = true
 	command = "/dl"
+	version = 1.1
 
 --Register events with the API for Looted Items Gold received and commands in the chat window.
 	DragonLoot:RegisterForEvent(EVENT_LOOT_RECEIVED, OnLootedItem)  -- Registers for the loot received event then calls the OnLootedItem function.
 	DragonLoot:RegisterForEvent(EVENT_MONEY_UPDATE, CashMoney) -- Registers for gold change events then calls the CashMoney function.
+	EVENT_MANAGER:RegisterForEvent("DL", EVENT_ADD_ON_LOADED, OnAddOnLoaded) -- Register for event of loading our addon.
 	SLASH_COMMANDS[command] = commandHandler -- The slash command handler for chat commands.
 
+end
+
+function OnAddOnLoaded(eventCode, addOnName)
+
+--Check if our addon is loaded:
+
+	if (addOnName == "DragonLoot") then
+	
+	--Set default Variables
+	defaultVar =
+	{
+		["showgold"]		= true,
+		["grouploot"]		= true,
+	}
+	
+	savedVars = ZO_SavedVars:New( "DragonLoot_Variables", math.floor(version * 10 ), nil , defaultVar, nil) --Method for adding persistent variables
+	
+	end
 
 end
 
@@ -80,6 +98,8 @@ function ToggleGold()
 	  d("Dragon Loot: Gold Enabled")
 	end
 	  
+	savedVars.showgold = showgold --Write changed Variable to persistent variables
+	  
 end
 
 --Used to toggle the grouploot variable
@@ -92,6 +112,8 @@ function ToggleGroup()
 	  grouploot = true
 	  d("Dragon Loot: Group Loot Enabled")
 	end
+	
+	savedVars.grouploot = grouploot --Write changed Variable to persistent variables
 	  
 end
 
@@ -103,7 +125,7 @@ function OnLootedItem(numID, lootedBy, itemName, quantity, itemSound, lootType, 
 	  itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 	  message = "You Received ["..quantity.."] " .. itemName -- Concatenating the quantity with the item name into a new variable.
 	  d(message) -- Telling the player what they received.
-	  d(lootType)
+	  --d(lootType)
 	  
   elseif (self ~= true) then  -- Checking to see if it is not the player that looted the item.
  
@@ -128,7 +150,7 @@ function CashMoney (reason, newMoney, oldMoney)
 		if (newMoney > oldMoney) then  -- Is the new amount of gold larger than the old amount (did we gain money?)
 	
 		goldgained = (newMoney - oldMoney)  -- Math to find out how much gold was obtained.
-		d("You have gained [+".. goldgained .. "] gold") -- Telling the player how much gold they got.
+		d("You have gained [+".. goldgained .. "] gold") -- Telling the player how much gold they gained.
 	  
 		end
 		
