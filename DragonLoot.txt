@@ -1,0 +1,6 @@
+## Title: Dragon Loot
+## APIVersion: 100000
+
+DragonLoot.lua
+DragonLoot.xml
+
