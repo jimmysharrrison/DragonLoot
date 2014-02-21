@@ -218,7 +218,7 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
 
   if (self)  then -- Checking to see if the player looted it or if someone in the party did.
   
-		if (DetermineLootType(lootType)) then  --Check to see if player wants to see the loot
+		if (DetermineLootType(itemName)) then  --Check to see if player wants to see the loot
 		
 			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			local message = "You Received ["..quantity.."] " .. itemName -- Concatenating the quantity with the item name into a new variable.
@@ -230,7 +230,7 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
  
 	  if (DL.savedVars.Group) then  -- Checking to see if we are displaying group loot to the player
 	  
-		if (DetermineLootType(lootType)) then  -- Check to see if the player wants to see the loot.
+		if (DetermineLootType(itemName)) then  -- Check to see if the player wants to see the loot.
 		
 			lootedBy = lootedBy:gsub("%^%a+","")  -- The character names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
@@ -272,7 +272,7 @@ end
 
 
 -- Factory function for determining what kind of loot the player wants to see.
-function DetermineLootType(lootType)
+function DetermineLootType(itemName)
 
 	if (lootType == ITEM_QUALITY_TRASH) and (DL.savedVars.Trash) then
 	
@@ -303,6 +303,8 @@ function DetermineLootType(lootType)
 	return false
 	
    end
+   
+   --ZO_LinkHandler_ParseLink 
 
 end
 
@@ -310,12 +312,26 @@ end
 
 
 
+--[[
 
+function ZO_LinkHandler_ParseLink(link) 
+	if type(link) == "string" then 
+		local color, data, text = link:match("|H(.-):(.-)|h(.-)|h") 
+		return text, color, zo_strsplit(':', data) 
+	end 
+end
 
+]]--
 
+--[[
+These match to lootType 
 
+LOOT_TYPE_ANY  
+LOOT_TYPE_ITEM  
+LOOT_TYPE_MONEY
+LOOT_TYPE_QUEST_ITEM
 
-
+]]
 
 
 
