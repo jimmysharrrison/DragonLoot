@@ -19,26 +19,16 @@ TODO:
 ]]--
 
 
-
-
 --Initialized function called from DragonLoot.xml in the addon folder
 function DragonLootLoad()
 
 --Setting Global Constants
 	command = "/dl"
 	version = 1.1
-	
-	--Set default Variables:	
-	defaultVar =
-	{
-		["showgold"]		= true,
-		["grouploot"]		= true,
-	}
-	
-	savedVars = ZO_SavedVars:New( "DragonLoot_Variables", math.floor(version * 10 ), nil , defaultVar, nil) --Method for adding persistent variables	
+	DL = {}
 
 	--Register events with the API for Looted Items Gold received and commands in the chat window.
-	EVENT_MANAGER:RegisterForEvent("DL", EVENT_ADD_ON_LOADED, OnAddOnLoaded) -- Register for event of loading our addon.
+	EVENT_MANAGER:RegisterForEvent("DragonLoot", EVENT_ADD_ON_LOADED, OnAddOnLoaded) -- Register for event of loading our addon.
 
 
 end
@@ -48,6 +38,16 @@ function OnAddOnLoaded(eventCode, addOnName)
 --Check if our addon is loaded:
 
 	if (addOnName == "DragonLoot") then
+	
+		--Set default Variables:	
+		
+		DL.defaultVar =
+	{
+		["showgold"]		= true,
+		["grouploot"]		= true,
+	}
+	
+	DL.savedVars = ZO_SavedVars:New( "DragonLoot_Variables", math.floor(version * 10 ), nil , DL.defaultVar, nil) --Method for adding persistent variables	
 	
 	DragonLoot:RegisterForEvent(EVENT_MONEY_UPDATE, CashMoney) -- Registers for gold change events then calls the CashMoney function.
 	DragonLoot:RegisterForEvent(EVENT_LOOT_RECEIVED, OnLootedItem)  -- Registers for the loot received event then calls the OnLootedItem function.
@@ -63,7 +63,7 @@ function commandHandler( text )
 
 	if ( text == "" )  then  -- Checking for blank commands
 	
-		d( "Dragon Loot: No Command Entered use \"help\" for commands" )
+		d( "Dragon Loot: No Command Entered use /dl \"help\" for commands" )
 		
 	elseif ( text == "help" ) then -- Someone asking for help
 	
@@ -78,11 +78,11 @@ function commandHandler( text )
 		
 	elseif (text == "group") then
 	
-		ToggleGroup() -- Toggle the savedVars.grouploot display variable.
+		ToggleGroup() -- Toggle the DL.savedVars.grouploot display variable.
 		
 	else
 	
-		d( "Dragon Loot: Unrecognised Command use \"help\" for commands" )
+		d( "Dragon Loot: Unrecognised Command use /dl \"help\" for commands" )
 		
 	end
 	
@@ -91,31 +91,35 @@ end
 --Used to toggle the showgold variable.
 function ToggleGold()
 
-	if (savedVars.showgold) then
-	  savedVars.showgold = false
+	if (DL.savedVars.showgold) then
+	
+	  DL.savedVars.showgold = false
 	  d("Dragon Loot: Gold Disabled")
-	else
-	  savedVars.showgold = true
-	  d("Dragon Loot: Gold Enabled")
-	end
 	  
-	--savedVars.showgold = showgold --Write changed Variable to persistent variables
+	else
+	
+	  DL.savedVars.showgold = true
+	  d("Dragon Loot: Gold Enabled")
+	  
+	end
 	  
 end
 
---Used to toggle the savedVars.grouploot variable
+--Used to toggle the DL.savedVars.grouploot variable
 function ToggleGroup()
 
-	if (savedVars.grouploot) then
-	  savedVars.grouploot = false
+	if (DL.savedVars.grouploot) then
+	
+	  DL.savedVars.grouploot = false
 	  d("Dragon Loot: Group Loot Disabled")
+	  
 	else
-	  savedVars.grouploot = true
+	
+	  DL.savedVars.grouploot = true
 	  d("Dragon Loot: Group Loot Enabled")
+	  
 	end
 	
-	--savedVars.grouploot = grouploot --Write changed Variable to persistent variables
-	  
 end
 
 --Function called when an item loot event is triggered from EVENT_LOOT_RECIEVED
@@ -126,11 +130,10 @@ function OnLootedItem(numID, lootedBy, itemName, quantity, itemSound, lootType, 
 	  itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 	  message = "You Received ["..quantity.."] " .. itemName -- Concatenating the quantity with the item name into a new variable.
 	  d(message) -- Telling the player what they received.
-	  --d(lootType)
 	  
   elseif (not self) then  -- Checking to see if it is not the player that looted the item.
  
-	  if (savedVars.grouploot) then  -- Checking to see if we are displaying group loot to the player
+	  if (DL.savedVars.grouploot) then  -- Checking to see if we are displaying group loot to the player
 	  
 		lootedBy = lootedBy:gsub("%^%a+","")  -- The character names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 		itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
@@ -146,7 +149,7 @@ end
 --Function called when a money event is triggered from EVENT_MONEY_UPDATE
 function CashMoney (reason, newMoney, oldMoney)
 
-	if (savedVars.showgold) then -- check if we are supposed to show gold
+	if (DL.savedVars.showgold) then -- check if we are supposed to show gold
 	
 		if (newMoney > oldMoney) then  -- Is the new amount of gold larger than the old amount (did we gain money?)
 	
