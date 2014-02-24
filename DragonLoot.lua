@@ -2,7 +2,7 @@
 
 Author:		@Qwexton
 File:			DragonLoot.lua
-Version:	Alpha 1.2
+Version:	Alpha 1.3
 Date:		2-21-2014
 
 ]]--
@@ -14,15 +14,14 @@ Date:		2-21-2014
 TODO:
 	
 	Create function to handle store buy receipts and buy back receipts ( EVENT_BUY_RECEIPT and EVENT_BUYBACK_RECEIPT )
-	Create XML frame for settings.
-	Create seperate frame to send loot mesages to.
+	Create separate frame to send loot messages to.
 
 ]]--
 
 --Setting Global Constants
 
 command = "/dl"
-version = 1.2
+version = 1.3
 DL = {}
 	
 --Set default Variables:	
@@ -35,7 +34,8 @@ DL.defaultVar =
 	["Normal"]			= true,
 	["Magic"]			= true,
 	["Quest"]			= true,
-	["Other"]			= true,
+	["settingsY"] 		= 300,
+	["settingsX"]		= 500,
 }
 
 --Initialized function called from DragonLoot.xml in the addon folder
@@ -72,15 +72,7 @@ function commandHandler( text )
 	local funct = {
 	
 	["help"] = _G["ShowHelp"],
-	["gold"] = _G["ToggleGold"],
-	["group"] = _G["ToggleGroup"],
-	["trash"] = _G["ToggleTrash"],
-	["normal"] = _G["ToggleNormal"],
-	["magic"] = _G["ToggleMagic"],
-	["settings"] = _G["ShowDLSettings"],
-	["quest"] = _G["ToggleQuest"],
-	["test"]	=	_G["ShowSettings"],
-	
+	["settings"] = _G["ShowSettings"],
 	
 	}
 	
@@ -98,18 +90,22 @@ function commandHandler( text )
 end
 
 
-
+--Function to make the settings window, we don't make the window unless someone calls it from the chat command.
 function ShowSettings()
 
-	if (dlSettings == nil) then 
+	if (dlSettings == nil) then  -- Check to see if the window already exists
+	
+		--dl_
 
+		-- Create the toplevel container for the window, this is what everything below it will bind to.
 		dl_settings = WINDOW_MANAGER:CreateTopLevelWindow("dlSettings")
 		dl_settings:SetMouseEnabled( true )
 		dl_settings:SetHidden( false )
 		dl_settings:SetMovable( true )
-		dl_settings:SetDimensions( 400,400 )
-		dl_settings:SetAnchor( BOTTOM,GuiRoot,BOTTOM,0,-200 )
-	
+		dl_settings:SetDimensions( 400,275 )
+		dl_settings:SetAnchor( TOPLEFT,GuiRoot,TOPLEFT,DL.savedVars.settingsX,DL.savedVars.settingsY )
+		
+		--Create the title label for the window
 		dl_settings_Title = WINDOW_MANAGER:CreateControl("Title",dlSettings,CT_LABEL)
 		dl_settings_Title:SetDimensions( dl_settings:GetWidth() , 36 )
 		dl_settings_Title:SetFont( "ZoFontWindowTitle" )
@@ -118,7 +114,8 @@ function ShowSettings()
 		dl_settings_Title:SetVerticalAlignment(0)
 		dl_settings_Title:SetText( "Dragon Loot Settings")
 		dl_settings_Title:SetAnchor(TOP,dl_settings,TOP,0,10)
-	
+		
+		--Set the Close Button at the top of the window.
 		dl_settings_clsBtn = WINDOW_MANAGER:CreateControl("Close" , dlSettings , CT_BUTTON)
 		dl_settings_clsBtn:SetDimensions( 25 , 25 )
 		dl_settings_clsBtn:SetFont("ZoFontGameBold")
@@ -129,6 +126,7 @@ function ShowSettings()
 		dl_settings_clsBtn:SetState( BSTATE_NORMAL )
 		dl_settings_clsBtn:SetHandler( "OnClicked" , function() CloseWindow() end )
 		
+		--Set a background to make the window look nice and have a definite shape.
 		dl_settings_BG = WINDOW_MANAGER:CreateControl("dlSettingsBG",dlSettings,CT_BACKDROP)
 		dl_settings_BG:SetDimensions( dl_settings:GetWidth() , dl_settings:GetHeight() )
 		dl_settings_BG:SetCenterColor(0,0,0,0.5)
@@ -136,45 +134,77 @@ function ShowSettings()
 		dl_settings_BG:SetEdgeTexture("",8,1,2)
 		dl_settings_BG:SetAnchor(CENTER,dlSettings,CENTER,0,0)
 		
+		--This function dynamically creates the labels and buttons.
 		MakeLabels()
 	
 	else
 	
-		dlSettings:SetHidden(false)
+		dlSettings:SetHidden(false) -- If the window has already been created then show it.
 		
 	end
 
 end
 
 
-
+--Dynamically creates labels and buttons on the dlSettings window.
 function MakeLabels()
 
-	local xoffset = 30
-	local yoffset = 60
+	local lbl_offsetX = 30
+	local lbl_offsetY = 60
+	
+	local btn_offsetX = -30
+	local btn_offsetY = 60
+	local tileoffset = 30
+	
 		local labels = 
 	{
-		"Gold",
-		"Group",
 		"Trash",
 		"Normal",
 		"Magic",
+		"Gold",
 		"Quest",
+		"Group",
 	}
 
-	for _, label in ipairs(labels) do
+	local vars = {}
+	
+	for  _, label in ipairs(labels) do
 
-	labelname = "dl_settings_" .. label
+		
+		local labelname = "dl_settings_" .. label
 	
 		lablename = WINDOW_MANAGER:CreateControl(label,dlSettings,CT_LABEL)
 		lablename:SetDimensions( dlSettings:GetWidth() * 0.6 , 30 )
-		lablename:SetText("Show "..label.." ..............")
+		lablename:SetText("Show "..label.." Loot..............................................")
 		lablename:SetFont("ZoFontGame")
 		lablename:SetColor(1,1,1,1)
 		lablename:SetVerticalAlignment(1)
-		lablename:SetAnchor(TOPLEFT, dlSettings ,TOPLEFT,xoffset,yoffset)
+		lablename:SetAnchor(TOPLEFT, dlSettings ,TOPLEFT,lbl_offsetX,lbl_offsetY)
 		
-		yoffset = (yoffset + 30)
+		lbl_offsetY = (lbl_offsetY + tileoffset) --Increment the offset so that they tile down.
+		
+		--These local Variables make sure our buttons and labels have unique names.
+		local buttonname = "dl_settings_btn" .. label
+		local btnID = "btn_" .. label
+		local toggleFunction = "Toggle" .. label
+		
+		buttonname = WINDOW_MANAGER:CreateControl(btnID , dlSettings , CT_BUTTON)
+		buttonname:SetDimensions( 25 , 25 )
+		buttonname:SetFont("ZoFontGameBold")
+		buttonname:SetAnchor(TOPRIGHT,dlSettings,TOPRIGHT,btn_offsetX,btn_offsetY)
+		buttonname:SetNormalFontColor(1,1,1,1)
+		buttonname:SetMouseOverFontColor(0,1,0,1)
+		
+		if (DL.savedVars[label]) then
+			buttonname:SetText('[X]')
+		else 
+			buttonname:SetText('[  ]')
+		end
+		
+		buttonname:SetState( BSTATE_NORMAL )
+		buttonname:SetHandler( "OnClicked" , function() _G[toggleFunction](buttonname) end)
+		
+		btn_offsetY = (btn_offsetY + tileoffset) -- Increment the offset so that the buttons tile with the labels.
 
 	end
 
@@ -182,100 +212,122 @@ end
 
 
 
-
+--Close the settings window and save the position for next time.
 function CloseWindow()
 
 	dlSettings:SetHidden(true)
+	DL.savedVars.settingsY = dlSettings:GetTop()
+	DL.savedVars.settingsX = dlSettings:GetLeft()
 
 end
 
 --Player asked for help we list the commands:
 function ShowHelp()
 
-		d( "Dragon Loot:  Help Summary ...." )
+		d( "Dragon Loot:  Help Summary...." )
 		d( "Commands: " )
-		d( "type:    /dl gold          -- Toggles Gold off and on" )
-		d( "type:    /dl group        -- Toggles Group Loot off and on")
-		d( "type:    /dl trash         -- Toggles Trash Loot (Grey) off and on")
-		d( "type:    /dl normal      -- Toggles Normal Loot (White) off and on")
-		d( "type:    /dl magic        -- Toggles Magic Loot (Green) off and on")
-		d( "type:    /dl quest        -- Toggles Quest Loot off and on")
-		d( "type:    /dl settings     -- Lets you see your current settings")
+		d( "type:    /dl help          -- This Help Menu" )
+		d( "type:    /dl settings     -- Lets you see and change current settings and filters")
+		
 
 end
 
 
-function ShowDLSettings()
-
--- Table of Variable names / there is probably a better way to do this without the table.
-	local settings = 
-	{
-		"Gold",
-		"Group",
-		"Trash",
-		"Normal",
-		"Magic",
-		"Quest",
-	}
-
-	d("-----------------DL Settings ------------------")
-	-- Loops through settings table and checks each variable for it's value.
-	for _, setting in ipairs(settings) do
-
-		local message = "Dragon Loot: ".. setting .. " Loot  -- ".. ((DL.savedVars[setting]) and "Enabled" or "Disabled")
-		d(message)
-
-	end
-
-end
-
-function ToggleQuest()
+function ToggleQuest(buttonname)
 	
 	DL.savedVars.Quest = (not DL.savedVars.Quest)  --Flip the boolean value to true or false
 	local message = "Dragon Loot: Quest Loot -- " .. ((DL.savedVars.Quest) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
+
+		if (DL.savedVars.Quest) then
+			buttonname:SetText('[X]')
+		else 
+			buttonname:SetText('[  ]')
+		end
+
+	
 	d(message) -- Let the player know if it's enabled or disabled.
 
 end
 
 -- Toggles Trash loot.
-function ToggleTrash()
+function ToggleTrash(buttonname)
 	
 	DL.savedVars.Trash = (not DL.savedVars.Trash)  --Flip the boolean value to true or false
-	local message = "Dragon Loot: Trash Loot -- " .. ((DL.savedVars.Trash) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	local message = "Dragon Loot: Trash Loot (Grey) -- " .. ((DL.savedVars.Trash) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
+
+		if (DL.savedVars.Trash) then
+			buttonname:SetText('[X]')
+		else 
+			buttonname:SetText('[  ]')
+		end
+
+	
 	d(message) -- Let the player know if it's enabled or disabled.
 
 end
 
-function ToggleNormal()
+function ToggleNormal(buttonname)
 	
 	DL.savedVars.Normal = (not DL.savedVars.Normal)  --Flip the boolean value to true or false
-	local message = "Dragon Loot: Normal Loot -- " .. ((DL.savedVars.Normal) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	local message = "Dragon Loot: Normal Loot (White)-- " .. ((DL.savedVars.Normal) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
+
+		if (DL.savedVars.Normal) then
+			buttonname:SetText('[X]')
+		else 
+			buttonname:SetText('[  ]')
+		end
+
+	
 	d(message) -- Let the player know if it's enabled or disabled.
 
 end
 
-function ToggleMagic()
+function ToggleMagic(buttonname)
 	
 	DL.savedVars.Magic = (not DL.savedVars.Magic)  --Flip the boolean value to true or false
-	local message = "Dragon Loot: Magic Loot -- " .. ((DL.savedVars.Magic) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	local message = "Dragon Loot: Magic Loot (Green)-- " .. ((DL.savedVars.Magic) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
+	if (DL.savedVars.Magic) then
+			buttonname:SetText('[X]')
+	else 
+			buttonname:SetText('[  ]')
+	end
+	
 	d(message) -- Let the player know if it's enabled or disabled.
 
 end
 
 --Used to toggle the Gold variable.
-function ToggleGold()
+function ToggleGold(buttonname)
 
 	DL.savedVars.Gold = (not DL.savedVars.Gold)  --Flip the boolean value to true or false
 	local message = "Dragon Loot: Gold -- " .. ((DL.savedVars.Gold) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
+	if (DL.savedVars.Gold) then
+			buttonname:SetText('[X]')
+	else 
+			buttonname:SetText('[  ]')
+	end
+	
 	d(message) -- Let the player know if it's enabled or disabled.
 		  
 end
 
 --Used to toggle the Group variable
-function ToggleGroup()
+function ToggleGroup(buttonname)
 
 	DL.savedVars.Group = (not DL.savedVars.Group)  --Flip the boolean value to true or false
 	local message = "Dragon Loot: Group Loot -- " .. ((DL.savedVars.Group) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
+	if (DL.savedVars.Group) then
+			buttonname:SetText('[X]')
+	else 
+			buttonname:SetText('[  ]')
+	end
+	
 	d(message) -- Let the player know if it's enabled or disabled.
 	
 	
@@ -289,7 +341,7 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
 		if (DetermineLootType(itemName, lootType)) then  --Check to see if player wants to see the loot
 		
 			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
-			local message = "You Received ["..quantity.."] " .. itemName -- Concatenating the quantity with the item name into a new variable.
+			local message = "You Received " .. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
 			d(message) -- Telling the player what they received.
 						
 		end
@@ -302,7 +354,7 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
 		
 			lootedBy = lootedBy:gsub("%^%a+","")  -- The character names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
-			local message = lootedBy .. " Received ["..quantity.."] " .. itemName -- Concatenating the quantity with the item name into a new variable.
+			local message = lootedBy .. " Received ".. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
 			d(message) -- Telling the player what they received.
 			
 		end
@@ -321,16 +373,16 @@ function CashMoney (reason, newMoney, oldMoney)
 		if (newMoney > oldMoney) then  -- Is the new amount of gold larger than the old amount (did we gain money?)
 	
 			local goldgained = (newMoney - oldMoney)  -- Math to find out how much gold was obtained.
-			d("You have gained [+".. goldgained .. "] gold") -- Telling the player how much gold they gained.
+			d("You have gained ".. goldgained .. " gold.") -- Telling the player how much gold they gained.
 			  
 		end
 		
-		if (oldMoney > newMoney) then  -- Is the old amount of money larger than the new amount (did we spend money?)
+		--[[if (oldMoney > newMoney) then  -- Is the old amount of money larger than the new amount (did we spend money?)
 	
 			local goldspent = (oldMoney - newMoney)  -- Math to figure out how much gold was spent.
-			d("You have spent [-".. goldspent .. "] gold") -- Telling the player how much gold they spent.
+			d("You have spent [-".. goldspent .. "] gold.") -- Telling the player how much gold they spent.
 	  
-		end
+		end]]--
 		
 	end
 
