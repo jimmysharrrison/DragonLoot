@@ -135,6 +135,8 @@ function ShowSettings()
 		dl_settings_BG:SetEdgeColor(.1,.1,.1,1)
 		dl_settings_BG:SetEdgeTexture("",8,1,2)
 		dl_settings_BG:SetAnchor(CENTER,dlSettings,CENTER,0,0)
+		
+		MakeLabels()
 	
 	else
 	
@@ -143,6 +145,42 @@ function ShowSettings()
 	end
 
 end
+
+
+
+function MakeLabels()
+
+	local xoffset = 30
+	local yoffset = 60
+		local labels = 
+	{
+		"Gold",
+		"Group",
+		"Trash",
+		"Normal",
+		"Magic",
+		"Quest",
+	}
+
+	for _, label in ipairs(labels) do
+
+	labelname = "dl_settings_" .. label
+	
+		lablename = WINDOW_MANAGER:CreateControl(label,dlSettings,CT_LABEL)
+		lablename:SetDimensions( dlSettings:GetWidth() * 0.6 , 30 )
+		lablename:SetText("Show "..label.." ..............")
+		lablename:SetFont("ZoFontGame")
+		lablename:SetColor(1,1,1,1)
+		lablename:SetVerticalAlignment(1)
+		lablename:SetAnchor(TOPLEFT, dlSettings ,TOPLEFT,xoffset,yoffset)
+		
+		yoffset = (yoffset + 30)
+
+	end
+
+end
+
+
 
 
 function CloseWindow()
