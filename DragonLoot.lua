@@ -224,7 +224,7 @@ end
 --Player asked for help we list the commands:
 function ShowHelp()
 
-		d( "Dragon Loot:  Help Summary ...." )
+		d( "Dragon Loot:  Help Summary...." )
 		d( "Commands: " )
 		d( "type:    /dl help          -- This Help Menu" )
 		d( "type:    /dl settings     -- Lets you see and change current settings and filters")
