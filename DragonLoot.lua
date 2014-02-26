@@ -100,7 +100,7 @@ function ShowSettings()
 	
 		--dl_
 
-		-- Create the toplevel container for the window, this is what everything below it will bind to.
+		-- Create the top level container for the window, this is what everything below it will bind to.
 		dl_settings = WINDOW_MANAGER:CreateTopLevelWindow("dlSettings")
 		dl_settings:SetMouseEnabled( true )
 		dl_settings:SetHidden( false )
@@ -169,14 +169,12 @@ function MakeLabels()
 		"Group",
 	}
 
-	local vars = {}
-	
-	for  _, label in ipairs(labels) do
 
-		--labelshort = string.gmatch(label, ' ')[0]
-		--lablelshort[0]
+	--:::::This for loop creates several of the item and gold filtering buttons and labels dynamically. (saves us a lot of code)
+	--:::::It iterates through the list above creating each label and button based on that list.
+	for  _, label in ipairs(labels) do
 		
-		local labelname = "dl_settings_" .. label
+		local labelname = "dl_settings_" .. label 
 	
 		lablename = WINDOW_MANAGER:CreateControl(label,dlSettings,CT_LABEL)
 		lablename:SetDimensions( dlSettings:GetWidth() * 0.6 , 30 )
@@ -214,6 +212,7 @@ function MakeLabels()
 	end
 	
 		--:::::Sell Notification Label and Button
+		--We don't have to increment the Y anchor because when the for loop above finishes it will have incremented it for us.
 		dl_settings_sell = WINDOW_MANAGER:CreateControl("dlSell",dlSettings,CT_LABEL)
 		dl_settings_sell:SetDimensions( dlSettings:GetWidth() * 0.6 , 30 )
 		dl_settings_sell:SetText("Show Store Sell Receipt......................................")
@@ -239,6 +238,7 @@ function MakeLabels()
 		dl_settings_sell_btn:SetHandler( "OnClicked" , function() ToggleSell(dl_settings_sell_btn) end)
 		
 		--:::::Buy Notification Label and Button
+		--Now we have to increment Y anchor because we just created the label and button above outside the loop.
 		lbl_offsetY = (lbl_offsetY + tileoffset)
 		btn_offsetY = (btn_offsetY + tileoffset)
 		
@@ -267,6 +267,7 @@ function MakeLabels()
 		dl_settings_buy_btn:SetHandler( "OnClicked" , function() ToggleBuy(dl_settings_buy_btn) end)
 		
 		--:::::Auto Sell Label and Button
+		--Incrementing the Y anchor again, for the next label and button.
 		lbl_offsetY = (lbl_offsetY + tileoffset)
 		btn_offsetY = (btn_offsetY + tileoffset)
 
