@@ -2,8 +2,8 @@
 
 Author:		@Qwexton
 File:			DragonLoot.lua
-Version:	Alpha 1.3
-Date:		2-24-2014
+Version:	Alpha 1.4
+Date:		2-26-2014
 
 ]]--
 
@@ -19,7 +19,7 @@ TODO:
 --Setting Global Constants
 
 command = "/dl"
-version = 1.3
+version = 1.4
 DL = {}
 	
 --Set default Variables:	
