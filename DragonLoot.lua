@@ -33,6 +33,7 @@ DL.defaultVar =
 	["Magic"]		= true,
 	["Quest"]		= true,
 	["Sell"]		= true,
+	["Buy"]		=true,
 	["AutoSell"]		= true,
 	["settingsY"] 		= 300,
 	["settingsX"]		= 500,
@@ -104,7 +105,7 @@ function ShowSettings()
 		dl_settings:SetMouseEnabled( true )
 		dl_settings:SetHidden( false )
 		dl_settings:SetMovable( true )
-		dl_settings:SetDimensions( 400,335 )
+		dl_settings:SetDimensions( 400,365 )
 		dl_settings:SetAnchor( TOPLEFT,GuiRoot,TOPLEFT,DL.savedVars.settingsX,DL.savedVars.settingsY )
 		
 		--Create the title label for the window
@@ -237,6 +238,33 @@ function MakeLabels()
 		dl_settings_sell_btn:SetState( BSTATE_NORMAL )
 		dl_settings_sell_btn:SetHandler( "OnClicked" , function() ToggleSell(dl_settings_sell_btn) end)
 		
+		--:::::Buy Notification Label and Button
+		lbl_offsetY = (lbl_offsetY + tileoffset)
+		btn_offsetY = (btn_offsetY + tileoffset)
+		
+		dl_settings_buy = WINDOW_MANAGER:CreateControl("dlBuy",dlSettings,CT_LABEL)
+		dl_settings_buy:SetDimensions( dlSettings:GetWidth() * 0.6 , 30 )
+		dl_settings_buy:SetText("Show Store Buy Receipt......................................")
+		dl_settings_buy:SetFont("ZoFontGame")
+		dl_settings_buy:SetColor(1,1,1,1)
+		dl_settings_buy:SetVerticalAlignment(1)
+		dl_settings_buy:SetAnchor(TOPLEFT, dlSettings ,TOPLEFT,lbl_offsetX,lbl_offsetY)
+	
+		dl_settings_buy_btn = WINDOW_MANAGER:CreateControl("dlBuybtn" , dlSettings , CT_BUTTON)
+		dl_settings_buy_btn:SetDimensions( 25 , 25 )
+		dl_settings_buy_btn:SetFont("ZoFontGameBold")
+		dl_settings_buy_btn:SetAnchor(TOPRIGHT,dlSettings,TOPRIGHT,btn_offsetX,btn_offsetY)
+		dl_settings_buy_btn:SetNormalFontColor(1,1,1,1)
+		dl_settings_buy_btn:SetMouseOverFontColor(0,1,0,1)
+		
+		if (DL.savedVars.Buy) then
+			dl_settings_buy_btn:SetText('[X]')
+		else 
+			dl_settings_buy_btn:SetText('[  ]')
+		end
+		
+		dl_settings_buy_btn:SetState( BSTATE_NORMAL )
+		dl_settings_buy_btn:SetHandler( "OnClicked" , function() ToggleBuy(dl_settings_buy_btn) end)
 		
 		--:::::Auto Sell Label and Button
 		lbl_offsetY = (lbl_offsetY + tileoffset)
@@ -297,6 +325,22 @@ function ToggleSell(buttonname)
 	
 
 		if (DL.savedVars.Sell) then
+			buttonname:SetText('[X]')
+		else 
+			buttonname:SetText('[  ]')
+		end
+
+	d(message) -- Let the player know if it's enabled or disabled.
+
+end
+
+function ToggleBuy(buttonname)
+	
+	DL.savedVars.Buy = (not DL.savedVars.Buy)  --Flip the boolean value to true or false
+	local message = "Dragon Loot: Store Buy Receipt  -- " .. ((DL.savedVars.Buy) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
+
+		if (DL.savedVars.Buy) then
 			buttonname:SetText('[X]')
 		else 
 			buttonname:SetText('[  ]')
@@ -580,9 +624,18 @@ function StoreSellReceipt(numid, itemName, itemQuantity, money)
 end
 
 --Store Receipt for bying items.
-function StoreBuyReceipt(entryName, entryType, entryQuantity, money, specialCurrencyType1, specialCurrencyInfo1, specialCurrencyQuantity1, specialCurrencyType2, specialCurrencyInfo2, specialCurrencyQuantity2, itemSoundCategory)
 
-d(entryName..entryType.. entryQuantity.. money.. specialCurrencyType1.. specialCurrencyInfo1.. specialCurrencyQuantity1.. specialCurrencyType2.. specialCurrencyInfo2.. specialCurrencyQuantity2.. itemSoundCategory)
+function StoreBuyReceipt(numID, itemName, entryType, itemQuantity, money, specialCurrencyType1, specialCurrencyInfo1, specialCurrencyQuantity1, specialCurrencyType2, specialCurrencyInfo2, specialCurrencyQuantity2, itemSoundCategory)
 
-
+	if (DL.savedVars.Buy) then
+	
+		if (money > 0) then
+	
+			local itemName = itemName:gsub("%^%a+","") --Fix the name because of weird characters.
+			d("You have bought ".. itemName.." x"..itemQuantity.." for "..money.. " gold.")  -- Tell the player what they bought and how much.
+		
+		end
+		
+	end
+	
 end
