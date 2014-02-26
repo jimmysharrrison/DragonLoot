@@ -26,13 +26,13 @@ DL = {}
 	
 DL.defaultVar =
 {
-	["Gold"]			= true,
-	["Group"]			= true,
-	["Trash"]			= true,
-	["Normal"]			= true,
-	["Magic"]			= true,
-	["Quest"]			= true,
-	["Sell"]				= true,
+	["Gold"]		= true,
+	["Group"]		= true,
+	["Trash"]		= true,
+	["Normal"]		= true,
+	["Magic"]		= true,
+	["Quest"]		= true,
+	["Sell"]		= true,
 	["AutoSell"]		= true,
 	["settingsY"] 		= 300,
 	["settingsX"]		= 500,
@@ -60,7 +60,8 @@ function OnAddOnLoaded(eventCode, addOnName)
 		DragonLoot:RegisterForEvent(EVENT_MONEY_UPDATE, CashMoney) -- Registers for gold change events then calls the CashMoney function.
 		DragonLoot:RegisterForEvent(EVENT_LOOT_RECEIVED, OnLootedItem)  -- Registers for the loot received event then calls the OnLootedItem function.
 		DragonLoot:RegisterForEvent(EVENT_OPEN_STORE, SellTrash) -- Registers for player opening a store, then sells trash/grey items.
-		DragonLoot:RegisterForEvent(EVENT_SELL_RECEIPT, StoreSellReceipt) -- Registers for Selling items
+		DragonLoot:RegisterForEvent(EVENT_SELL_RECEIPT, StoreSellReceipt) -- Registers for Selling items to vendors.
+		DragonLoot:RegisterForEvent(EVENT_BUY_RECEIPT, StoreBuyReceipt) -- Registers for Buying items from vendor.
 		SLASH_COMMANDS[command] = commandHandler -- The slash command handler for chat commands.
 	
 	end
@@ -283,7 +284,7 @@ function ShowHelp()
 
 		d( "Dragon Loot:  Help Summary v"..version.."...." )
 		d( "Commands: " )
-		d( "type:    /dl help          -- This Help Menu" )
+		d( "type:    /dl help         -- This Help Menu" )
 		d( "type:    /dl settings     -- Lets you see and change current settings and filters")
 		
 
@@ -566,7 +567,7 @@ function SellTrash()
 
 end
 
---Store Receipt for selling items
+--Store Receipt for selling items.
 function StoreSellReceipt(numid, itemName, itemQuantity, money) 
 
 	if (DL.savedVars.Sell) then
@@ -575,5 +576,13 @@ function StoreSellReceipt(numid, itemName, itemQuantity, money)
 		d("You have sold ".. itemName.." x"..itemQuantity.." for "..money.. " gold.")  -- Tell the player what they sold and how much.
 		
 	end
+
+end
+
+--Store Receipt for bying items.
+function StoreBuyReceipt(entryName, entryType, entryQuantity, money, specialCurrencyType1, specialCurrencyInfo1, specialCurrencyQuantity1, specialCurrencyType2, specialCurrencyInfo2, specialCurrencyQuantity2, itemSoundCategory)
+
+d(entryName..entryType.. entryQuantity.. money.. specialCurrencyType1.. specialCurrencyInfo1.. specialCurrencyQuantity1.. specialCurrencyType2.. specialCurrencyInfo2.. specialCurrencyQuantity2.. itemSoundCategory)
+
 
 end
