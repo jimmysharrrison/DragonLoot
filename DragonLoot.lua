@@ -3,11 +3,9 @@
 Author:		@Qwexton
 File:			DragonLoot.lua
 Version:	Alpha 1.3
-Date:		2-21-2014
+Date:		2-24-2014
 
 ]]--
-
-
 
 --[[
 
@@ -34,6 +32,8 @@ DL.defaultVar =
 	["Normal"]			= true,
 	["Magic"]			= true,
 	["Quest"]			= true,
+	["Sell"]				= true,
+	["AutoSell"]		= true,
 	["settingsY"] 		= 300,
 	["settingsX"]		= 500,
 }
@@ -48,22 +48,24 @@ function DragonLootLoad()
 	
 end
 
+--Loads our Addon - Maybe redundant but whatever........
 function OnAddOnLoaded(eventCode, addOnName)
 
 --Check if our addon is loaded:
 
 	if (addOnName == "DragonLoot") then		
 
-	DL.savedVars = ZO_SavedVars:New( "DragonLoot_Variables", math.floor(version * 10 ), nil , DL.defaultVar, nil) --Method for adding persistent variables	
+		DL.savedVars = ZO_SavedVars:New( "DragonLoot_Variables", math.floor(version * 10 ), nil , DL.defaultVar, nil) --Method for adding persistent variables	
 	
-	DragonLoot:RegisterForEvent(EVENT_MONEY_UPDATE, CashMoney) -- Registers for gold change events then calls the CashMoney function.
-	DragonLoot:RegisterForEvent(EVENT_LOOT_RECEIVED, OnLootedItem)  -- Registers for the loot received event then calls the OnLootedItem function.
-	SLASH_COMMANDS[command] = commandHandler -- The slash command handler for chat commands.
+		DragonLoot:RegisterForEvent(EVENT_MONEY_UPDATE, CashMoney) -- Registers for gold change events then calls the CashMoney function.
+		DragonLoot:RegisterForEvent(EVENT_LOOT_RECEIVED, OnLootedItem)  -- Registers for the loot received event then calls the OnLootedItem function.
+		DragonLoot:RegisterForEvent(EVENT_OPEN_STORE, SellTrash) -- Registers for player opening a store, then sells trash/grey items.
+		DragonLoot:RegisterForEvent(EVENT_SELL_RECEIPT, StoreSellReceipt) -- Registers for Selling items
+		SLASH_COMMANDS[command] = commandHandler -- The slash command handler for chat commands.
 	
 	end
 
 end
-
 
 --Function that handles chat commands from /dl in the chat window.
 function commandHandler( text )
@@ -89,7 +91,6 @@ function commandHandler( text )
 	
 end
 
-
 --Function to make the settings window, we don't make the window unless someone calls it from the chat command.
 function ShowSettings()
 
@@ -102,7 +103,7 @@ function ShowSettings()
 		dl_settings:SetMouseEnabled( true )
 		dl_settings:SetHidden( false )
 		dl_settings:SetMovable( true )
-		dl_settings:SetDimensions( 400,275 )
+		dl_settings:SetDimensions( 400,335 )
 		dl_settings:SetAnchor( TOPLEFT,GuiRoot,TOPLEFT,DL.savedVars.settingsX,DL.savedVars.settingsY )
 		
 		--Create the title label for the window
@@ -170,6 +171,8 @@ function MakeLabels()
 	
 	for  _, label in ipairs(labels) do
 
+		--labelshort = string.gmatch(label, ' ')[0]
+		--lablelshort[0]
 		
 		local labelname = "dl_settings_" .. label
 	
@@ -204,13 +207,67 @@ function MakeLabels()
 		buttonname:SetState( BSTATE_NORMAL )
 		buttonname:SetHandler( "OnClicked" , function() _G[toggleFunction](buttonname) end)
 		
-		btn_offsetY = (btn_offsetY + tileoffset) -- Increment the offset so that the buttons tile with the labels.
+		btn_offsetY = (btn_offsetY + tileoffset) -- Increment the offset so that the buttons tile with the labels.		
 
 	end
+	
+		--:::::Sell Notification Label and Button
+		dl_settings_sell = WINDOW_MANAGER:CreateControl("dlSell",dlSettings,CT_LABEL)
+		dl_settings_sell:SetDimensions( dlSettings:GetWidth() * 0.6 , 30 )
+		dl_settings_sell:SetText("Show Store Sell Receipt......................................")
+		dl_settings_sell:SetFont("ZoFontGame")
+		dl_settings_sell:SetColor(1,1,1,1)
+		dl_settings_sell:SetVerticalAlignment(1)
+		dl_settings_sell:SetAnchor(TOPLEFT, dlSettings ,TOPLEFT,lbl_offsetX,lbl_offsetY)
+	
+		dl_settings_sell_btn = WINDOW_MANAGER:CreateControl("dlSellbtn" , dlSettings , CT_BUTTON)
+		dl_settings_sell_btn:SetDimensions( 25 , 25 )
+		dl_settings_sell_btn:SetFont("ZoFontGameBold")
+		dl_settings_sell_btn:SetAnchor(TOPRIGHT,dlSettings,TOPRIGHT,btn_offsetX,btn_offsetY)
+		dl_settings_sell_btn:SetNormalFontColor(1,1,1,1)
+		dl_settings_sell_btn:SetMouseOverFontColor(0,1,0,1)
+		
+		if (DL.savedVars.Sell) then
+			dl_settings_sell_btn:SetText('[X]')
+		else 
+			dl_settings_sell_btn:SetText('[  ]')
+		end
+		
+		dl_settings_sell_btn:SetState( BSTATE_NORMAL )
+		dl_settings_sell_btn:SetHandler( "OnClicked" , function() ToggleSell(dl_settings_sell_btn) end)
+		
+		
+		--:::::Auto Sell Label and Button
+		lbl_offsetY = (lbl_offsetY + tileoffset)
+		btn_offsetY = (btn_offsetY + tileoffset)
+
+		dl_settings_autosell = WINDOW_MANAGER:CreateControl("dlAutoSell",dlSettings,CT_LABEL)
+		dl_settings_autosell:SetDimensions( dlSettings:GetWidth() * 0.6 , 30 )
+		dl_settings_autosell:SetText("Automatically Sell Trash/Junk..................................")
+		dl_settings_autosell:SetFont("ZoFontGame")
+		dl_settings_autosell:SetColor(1,1,1,1)
+		dl_settings_autosell:SetVerticalAlignment(1)
+		dl_settings_autosell:SetAnchor(TOPLEFT, dlSettings ,TOPLEFT,lbl_offsetX,lbl_offsetY)
+	
+		dl_settings_autosell_btn = WINDOW_MANAGER:CreateControl("dlAutoSellbtn" , dlSettings , CT_BUTTON)
+		dl_settings_autosell_btn:SetDimensions( 25 , 25 )
+		dl_settings_autosell_btn:SetFont("ZoFontGameBold")
+		dl_settings_autosell_btn:SetAnchor(TOPRIGHT,dlSettings,TOPRIGHT,btn_offsetX,btn_offsetY)
+		dl_settings_autosell_btn:SetNormalFontColor(1,1,1,1)
+		dl_settings_autosell_btn:SetMouseOverFontColor(0,1,0,1)
+		
+		if (DL.savedVars.AutoSell) then
+			dl_settings_autosell_btn:SetText('[X]')
+		else 
+			dl_settings_autosell_btn:SetText('[  ]')
+		end
+		
+		dl_settings_autosell_btn:SetState( BSTATE_NORMAL )
+		dl_settings_autosell_btn:SetHandler( "OnClicked" , function() ToggleAutoSell(dl_settings_autosell_btn) end)
+	
+	
 
 end
-
-
 
 --Close the settings window and save the position for next time.
 function CloseWindow()
@@ -224,7 +281,7 @@ end
 --Player asked for help we list the commands:
 function ShowHelp()
 
-		d( "Dragon Loot:  Help Summary...." )
+		d( "Dragon Loot:  Help Summary v"..version.."...." )
 		d( "Commands: " )
 		d( "type:    /dl help          -- This Help Menu" )
 		d( "type:    /dl settings     -- Lets you see and change current settings and filters")
@@ -232,7 +289,39 @@ function ShowHelp()
 
 end
 
+function ToggleSell(buttonname)
+	
+	DL.savedVars.Sell = (not DL.savedVars.Sell)  --Flip the boolean value to true or false
+	local message = "Dragon Loot: Store Sell Receipt -- " .. ((DL.savedVars.Sell) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
 
+		if (DL.savedVars.Sell) then
+			buttonname:SetText('[X]')
+		else 
+			buttonname:SetText('[  ]')
+		end
+
+	d(message) -- Let the player know if it's enabled or disabled.
+
+end
+
+function ToggleAutoSell(buttonname)
+	
+	DL.savedVars.AutoSell = (not DL.savedVars.AutoSell)  --Flip the boolean value to true or false
+	local message = "Dragon Loot: Automatically Sell Trash/Junk  -- " .. ((DL.savedVars.AutoSell) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
+
+		if (DL.savedVars.AutoSell) then
+			buttonname:SetText('[X]')
+		else 
+			buttonname:SetText('[  ]')
+		end
+
+	d(message) -- Let the player know if it's enabled or disabled.
+
+end
+
+--Toggles Quest Loot.
 function ToggleQuest(buttonname)
 	
 	DL.savedVars.Quest = (not DL.savedVars.Quest)  --Flip the boolean value to true or false
@@ -250,7 +339,7 @@ function ToggleQuest(buttonname)
 
 end
 
--- Toggles Trash loot.
+-- Toggles Trash Loot.
 function ToggleTrash(buttonname)
 	
 	DL.savedVars.Trash = (not DL.savedVars.Trash)  --Flip the boolean value to true or false
@@ -268,6 +357,7 @@ function ToggleTrash(buttonname)
 
 end
 
+--Toggles Normal Loot.
 function ToggleNormal(buttonname)
 	
 	DL.savedVars.Normal = (not DL.savedVars.Normal)  --Flip the boolean value to true or false
@@ -285,6 +375,7 @@ function ToggleNormal(buttonname)
 
 end
 
+--Toggles Magic Loot.
 function ToggleMagic(buttonname)
 	
 	DL.savedVars.Magic = (not DL.savedVars.Magic)  --Flip the boolean value to true or false
@@ -336,12 +427,17 @@ end
 --Function called when an item loot event is triggered from EVENT_LOOT_RECIEVED
 function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType, self)
 
+	if (lootType == LOOT_TYPE_MONEY) then
+		d("Money Looted")
+	end
+  
+  
   if (self)  then -- Checking to see if the player looted it or if someone in the party did.
   
 		if (DetermineLootType(itemName, lootType)) then  --Check to see if player wants to see the loot
 		
 			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
-			local message = "You Received " .. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
+			local message = "You received " .. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
 			d(message) -- Telling the player what they received.
 						
 		end
@@ -354,7 +450,7 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
 		
 			lootedBy = lootedBy:gsub("%^%a+","")  -- The character names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
-			local message = lootedBy .. " Received ".. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
+			local message = lootedBy .. " received ".. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
 			d(message) -- Telling the player what they received.
 			
 		end
@@ -366,28 +462,31 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
 end
 
 --Function called when a money event is triggered from EVENT_MONEY_UPDATE
-function CashMoney (reason, newMoney, oldMoney)
+function CashMoney (numId, newMoney, oldMoney, reason)
 
-	if (DL.savedVars.Gold) then -- check if we are supposed to show gold
+	if (reason ~= CURRENCY_CHANGE_REASON_VENDOR) then
 	
-		if (newMoney > oldMoney) then  -- Is the new amount of gold larger than the old amount (did we gain money?)
-	
-			local goldgained = (newMoney - oldMoney)  -- Math to find out how much gold was obtained.
-			d("You have gained ".. goldgained .. " gold.") -- Telling the player how much gold they gained.
-			  
-		end
+		if (DL.savedVars.Gold) then -- check if we are supposed to show gold
 		
-		--[[if (oldMoney > newMoney) then  -- Is the old amount of money larger than the new amount (did we spend money?)
-	
-			local goldspent = (oldMoney - newMoney)  -- Math to figure out how much gold was spent.
-			d("You have spent [-".. goldspent .. "] gold.") -- Telling the player how much gold they spent.
-	  
-		end]]--
+			if (newMoney > oldMoney) then  -- Is the new amount of gold larger than the old amount (did we gain money?)
+		
+				local goldgained = (newMoney - oldMoney)  -- Math to find out how much gold was obtained.
+				d("You have gained ".. goldgained .. " gold.") -- Telling the player how much gold they gained.
+				
+			end
+			
+			--[[if (oldMoney > newMoney) then  -- Is the old amount of money larger than the new amount (did we spend money?)
+		
+				local goldspent = (oldMoney - newMoney)  -- Math to figure out how much gold was spent.
+				d("You have spent [-".. goldspent .. "] gold.") -- Telling the player how much gold they spent.
+		
+			end]]--
+			
+		end
 		
 	end
 
 end
-
 
 -- Factory function for determining what kind of loot the player wants to see we do this by cheating and looking at the color of the link from the item.
 function DetermineLootType(itemName, lootType)
@@ -399,7 +498,7 @@ local colorwheel =
 	Grey = "C3C3C3",
 }	
 
-	-- Calling a function to take apart the link and get teh color for us, so we can use the color to figure out how rare the item is.
+	-- Calling a function to take apart the link and get the color for us, so we can use the color to figure out how rare the item is.
 	if (lootType == LOOT_TYPE_ITEM) then	  
 		
 		text, color, split = ZO_LinkHandler_ParseLink (itemName)  -- getting the color of the item.
@@ -418,11 +517,8 @@ local colorwheel =
 	else
 			
 			if (color == colorwheel.Grey) and (DL.savedVars.Trash) then return true--Check for Grey items and see if the player wants to see grey items.
-	
 			elseif (color == colorwheel.White) and (DL.savedVars.Normal) then return true --Check for White items and see if the player wants to see white items.
-	
 			elseif (color == colorwheel.Green) and (DL.savedVars.Magic) then return true --Check for Green items and see if the player wants to see green items.
-				
 			else return false
 			
 			end
@@ -440,4 +536,44 @@ function InTable(tbl, item)
 	
 	return false
 	
+end
+
+--Sells trash items when store window is opened evoked from EVENT_OPEN_STORE.
+function SellTrash()
+
+	if (DL.savedVars.AutoSell) then
+	
+		SellAllJunk() --Sell Junk marked by the player.
+	
+		local icon, bagslots = GetBagInfo(BAG_BACKPACK) -- Get the number of bag slots from the backpack using the BAG_BACKPACK constant. GetBagInfo returns Icon and # of slots integer
+		
+		for i=1 , bagslots  do -- Look through the bag to sell all the trash items
+		
+			local itemType = GetItemType(BAG_BACKPACK, i) -- Get the item type from GetItemType()
+			
+			if (itemType == ITEMTYPE_TRASH) then -- if the itemType is trash then
+		
+				local stackcount = GetItemTotalCount(BAG_BACKPACK, i) --Get the number of items in the stack
+				SellInventoryItem(BAG_BACKPACK, i, stackcount) -- Sell the whole stack.
+				
+			end
+			
+			i = (i + 1) --Increment for the bag slot index.
+		
+		end
+		
+	end
+
+end
+
+--Store Receipt for selling items
+function StoreSellReceipt(numid, itemName, itemQuantity, money) 
+
+	if (DL.savedVars.Sell) then
+	
+		local itemName = itemName:gsub("%^%a+","") --Fix the name because of weird characters.
+		d("You have sold ".. itemName.." x"..itemQuantity.." for "..money.. " gold.")  -- Tell the player what they sold and how much.
+		
+	end
+
 end
