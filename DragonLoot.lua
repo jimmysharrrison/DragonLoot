@@ -11,7 +11,7 @@ Date:		2-26-2014
 
 TODO:
 	
-	Create function to handle store buy receipts and buy back receipts ( EVENT_BUY_RECEIPT and EVENT_BUYBACK_RECEIPT )
+	Create function to handle store buy receipts and buy back receipts ( EVENT_BUYBACK_RECEIPT )
 	Create separate frame to send loot messages to.
 
 ]]--
@@ -33,10 +33,13 @@ DL.defaultVar =
 	["Magic"]		= true,
 	["Quest"]		= true,
 	["Sell"]		= true,
-	["Buy"]		=true,
+	["Buy"]			= true,
 	["AutoSell"]		= true,
 	["settingsY"] 		= 300,
 	["settingsX"]		= 500,
+	["lwY"]			= 570,
+	["lwX"]			= 10,
+	["LootWindow"]		= true,
 }
 
 --Initialized function called from DragonLoot.xml in the addon folder
@@ -64,6 +67,7 @@ function OnAddOnLoaded(eventCode, addOnName)
 		DragonLoot:RegisterForEvent(EVENT_SELL_RECEIPT, StoreSellReceipt) -- Registers for Selling items to vendors.
 		DragonLoot:RegisterForEvent(EVENT_BUY_RECEIPT, StoreBuyReceipt) -- Registers for Buying items from vendor.
 		SLASH_COMMANDS[command] = commandHandler -- The slash command handler for chat commands.
+		ShowLootWindow()
 	
 	end
 
@@ -77,6 +81,7 @@ function commandHandler( text )
 	
 	["help"] = _G["ShowHelp"],
 	["settings"] = _G["ShowSettings"],
+	["lootwindow"] = _G["ToggleLootWindow"],
 	
 	}
 	
@@ -97,19 +102,17 @@ end
 function ShowSettings()
 
 	if (dlSettings == nil) then  -- Check to see if the window already exists
-	
-		--dl_
 
 		-- Create the top level container for the window, this is what everything below it will bind to.
 		dl_settings = WINDOW_MANAGER:CreateTopLevelWindow("dlSettings")
 		dl_settings:SetMouseEnabled( true )
 		dl_settings:SetHidden( false )
 		dl_settings:SetMovable( true )
-		dl_settings:SetDimensions( 400,365 )
+		dl_settings:SetDimensions( 400,395 )
 		dl_settings:SetAnchor( TOPLEFT,GuiRoot,TOPLEFT,DL.savedVars.settingsX,DL.savedVars.settingsY )
 		
 		--Create the title label for the window
-		dl_settings_Title = WINDOW_MANAGER:CreateControl("Title",dlSettings,CT_LABEL)
+		dl_settings_Title = WINDOW_MANAGER:CreateControl("Title", dlSettings, CT_LABEL)
 		dl_settings_Title:SetDimensions( dl_settings:GetWidth() , 36 )
 		dl_settings_Title:SetFont( "ZoFontWindowTitle" )
 		dl_settings_Title:SetColor(1,1,1,1)
@@ -130,7 +133,7 @@ function ShowSettings()
 		dl_settings_clsBtn:SetHandler( "OnClicked" , function() CloseWindow() end )
 		
 		--Set a background to make the window look nice and have a definite shape.
-		dl_settings_BG = WINDOW_MANAGER:CreateControl("dlSettingsBG",dlSettings,CT_BACKDROP)
+		dl_settings_BG = WINDOW_MANAGER:CreateControl("dlSettingsBG", dlSettings, CT_BACKDROP)
 		dl_settings_BG:SetDimensions( dl_settings:GetWidth() , dl_settings:GetHeight() )
 		dl_settings_BG:SetCenterColor(0,0,0,0.5)
 		dl_settings_BG:SetEdgeColor(.1,.1,.1,1)
@@ -294,8 +297,35 @@ function MakeLabels()
 		
 		dl_settings_autosell_btn:SetState( BSTATE_NORMAL )
 		dl_settings_autosell_btn:SetHandler( "OnClicked" , function() ToggleAutoSell(dl_settings_autosell_btn) end)
+		
+		--:::::Loot Window Label and Button
+		--Incrementing the Y anchor again, for the next label and button.
+		lbl_offsetY = (lbl_offsetY + tileoffset)
+		btn_offsetY = (btn_offsetY + tileoffset)
+
+		dl_settings_lootwindow = WINDOW_MANAGER:CreateControl("dlLootWindowlbl",dlSettings,CT_LABEL)
+		dl_settings_lootwindow:SetDimensions( dlSettings:GetWidth() * 0.6 , 30 )
+		dl_settings_lootwindow:SetText("Show Loot Window..................................")
+		dl_settings_lootwindow:SetFont("ZoFontGame")
+		dl_settings_lootwindow:SetColor(1,1,1,1)
+		dl_settings_lootwindow:SetVerticalAlignment(1)
+		dl_settings_lootwindow:SetAnchor(TOPLEFT, dlSettings ,TOPLEFT,lbl_offsetX,lbl_offsetY)
 	
-	
+		dl_settings_lootwindow_btn = WINDOW_MANAGER:CreateControl("dlLootWindowbtn" , dlSettings , CT_BUTTON)
+		dl_settings_lootwindow_btn:SetDimensions( 25 , 25 )
+		dl_settings_lootwindow_btn:SetFont("ZoFontGameBold")
+		dl_settings_lootwindow_btn:SetAnchor(TOPRIGHT,dlSettings,TOPRIGHT,btn_offsetX,btn_offsetY)
+		dl_settings_lootwindow_btn:SetNormalFontColor(1,1,1,1)
+		dl_settings_lootwindow_btn:SetMouseOverFontColor(0,1,0,1)
+		
+		if (DL.savedVars.LootWindow) then
+			dl_settings_lootwindow_btn:SetText('[X]')
+		else 
+			dl_settings_lootwindow_btn:SetText('[  ]')
+		end
+		
+		dl_settings_lootwindow_btn:SetState( BSTATE_NORMAL )
+		dl_settings_lootwindow_btn:SetHandler( "OnClicked" , function() ToggleLootWindow(dl_settings_lootwindow_btn) end)	
 
 end
 
@@ -313,10 +343,9 @@ function ShowHelp()
 
 		d( "Dragon Loot:  Help Summary v"..version.."...." )
 		d( "Commands: " )
-		d( "type:    /dl help         -- This Help Menu" )
-		d( "type:    /dl settings     -- Lets you see and change current settings and filters")
+		d( "type:    /dl help           -- This Help Menu." )
+		d( "type:    /dl settings     -- Lets you see and change current settings and filters.")
 		
-
 end
 
 function ToggleSell(buttonname)
@@ -484,8 +513,7 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
 		
 			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			local message = "You received " .. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
-			d(message) -- Telling the player what they received.
-			LootWindowHandler(message)
+			LootWindowHandler(message) -- Tell Player what they recieved.
 						
 		end
 		
@@ -498,7 +526,7 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
 			lootedBy = lootedBy:gsub("%^%a+","")  -- The character names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			local message = lootedBy .. " received ".. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
-			d(message) -- Telling the player what they received.
+			LootWindowHandler(message) -- Telling the player what they received.
 			
 		end
 		
@@ -518,7 +546,8 @@ function CashMoney (numId, newMoney, oldMoney, reason)
 			if (newMoney > oldMoney) then  -- Is the new amount of gold larger than the old amount (did we gain money?)
 		
 				local goldgained = (newMoney - oldMoney)  -- Math to find out how much gold was obtained.
-				d("You have gained ".. goldgained .. " gold.") -- Telling the player how much gold they gained.
+				local message = "You have gained ".. goldgained .. " gold." -- Create Message
+				LootWindowHandler(message)
 				
 			end
 			
@@ -619,7 +648,8 @@ function StoreSellReceipt(numid, itemName, itemQuantity, money)
 	if (DL.savedVars.Sell) then
 	
 		local itemName = itemName:gsub("%^%a+","") --Fix the name because of weird characters.
-		d("You have sold ".. itemName.." x"..itemQuantity.." for "..money.. " gold.")  -- Tell the player what they sold and how much.
+		local message = "You have sold ".. itemName.." x"..itemQuantity.." for "..money.. " gold."  --Create Message
+		LootWindowHandler(message)
 		
 	end
 
@@ -634,13 +664,18 @@ function StoreBuyReceipt(numID, itemName, entryType, itemQuantity, money, specia
 		if (money > 0) then
 	
 			local itemName = itemName:gsub("%^%a+","") --Fix the name because of weird characters.
-			d("You have bought ".. itemName.." x"..itemQuantity.." for "..money.. " gold.")  -- Tell the player what they bought and how much.
-		
+			local message = "You have bought ".. itemName.." x"..itemQuantity.." for "..money.. " gold." --Create Message
+			LootWindowHandler(message) --Send Message
 		end
 		
 	end
 	
 end
+
+
+--[[::::::::::::::::::::::::::::::::::::::::::::
+:::::::Starting Loot Window for Showing Loot::::
+::::::::::::::::::::::::::::::::::::::::::::::::]]--
 
 function ShowLootWindow()
 
@@ -649,65 +684,36 @@ function ShowLootWindow()
 		-- Create the top level container for the window, this is what everything below it will bind to.
 		dl_lootWindow = WINDOW_MANAGER:CreateTopLevelWindow("dlLootWindow")
 		dl_lootWindow:SetMouseEnabled( true )
-		dl_lootWindow:SetHidden( false )
+		
+			if (DL.savedVars.LootWindow) then
+				dl_lootWindow:SetHidden( false )
+			else
+				dl_lootWindow:SetHidden( true )
+			end
+			
 		dl_lootWindow:SetMovable( true )
-		dl_lootWindow:SetDimensions( 300,100 )
-		dl_lootWindow:SetAnchor( TOPLEFT,GuiRoot,TOPLEFT,10,10 )
+		dl_lootWindow:SetHandler( "OnMouseExit" , function() MouseExit(dl_lootWindow) end)
+		dl_lootWindow:SetHandler( "OnMouseEnter", function() ShowFaded() end)
+		dl_lootWindow:SetDimensions( 400,100 )
+		dl_lootWindow:SetAnchor( TOPLEFT, GuiRoot, TOPLEFT, DL.savedVars.lwX, DL.savedVars.lwY )
 		
-		
-		--[[Create the title label for the window 
-		dl_lootWindow_Title = WINDOW_MANAGER:CreateControl("lwTitle",dlLootWindow,CT_LABEL)
-		dl_lootWindow_Title:SetDimensions( dlLootWindow:GetWidth() , 36 )
-		dl_lootWindow_Title:SetFont( "ZoFontWindowTitle" )
-		dl_lootWindow_Title:SetColor(1,1,1,1)
-		dl_lootWindow_Title:SetHorizontalAlignment(1)
-		dl_lootWindow_Title:SetVerticalAlignment(0)
-		dl_lootWindow_Title:SetText( "Loot Window")
-		dl_lootWindow_Title:SetAnchor(TOP,dl_settings,TOP,0,10)
-		
-		--Set the Close Button at the top of the window.
-		dl_lootWindow_clsBtn = WINDOW_MANAGER:CreateControl("lwClose" , dlLootWindow , CT_BUTTON)
-		dl_lootWindow_clsBtn:SetDimensions( 25 , 25 )
-		dl_lootWindow_clsBtn:SetFont("ZoFontGameBold")
-		dl_lootWindow_clsBtn:SetAnchor(TOPRIGHT,dlLootWindow,TOPRIGHT,-5,5)
-		dl_lootWindow_clsBtn:SetNormalFontColor(1,1,1,1)
-		dl_lootWindow_clsBtn:SetMouseOverFontColor(0.8,0.4,0,1)
-		dl_lootWindow_clsBtn:SetText('[X]')
-		dl_lootWindow_clsBtn:SetState( BSTATE_NORMAL )
-		dl_lootWindow_clsBtn:SetHandler( "OnClicked" , function() CloseLootWindow() end )
-		
-		--[[dl_lootScroll = WINDOW_MANAGER:CreateControl("lootScroll", dlLootWindow, CT_SCROLL)
-		dl_lootScroll:SetVerticalScroll(0)
-		dl_lootScroll:SetHorizontalScroll(0)
- 		dl_lootScroll:SetScrollBounding(0)
- 		dl_lootScroll:SetFadeGradient(4, 1, 1, 1)
- 		dl_lootScroll:SetAnchorFill(dlLootWindow)
- 		
- 		--[[dl_lootItems = WINDOW_MANAGER:CreateControl("lootedItems" , lootScroll , CT_LABEL)
-		dl_lootItems:SetFont("ZoFontChat")
-		dl_lootItems:SetColor(255,255,0,1)
-		dl_lootItems:SetAnchorFill(dlLootWindow)
-		--dl_lootItems:SetText("Welcome To Dragon Loot")
-		dl_lootItems:SetHorizontalAlignment(0)
-		dl_lootItems:SetVerticalAlignment(0)
-		dl_lootItems:SetHidden(false)]]
-		
-		dl_lootBuffer = WINDOW_MANAGER:CreateControl("lootedBuffer", dlLootWindow, CT_TEXTBUFFER)
- 		dl_lootBuffer:GetLinkEnabled( true )
- 		dl_lootBuffer:SetFont("ZoFontChat")
- 		dl_lootBuffer:SetHidden(false)
- 		dl_lootBuffer:SetLineFade(5,2)
- 		dl_lootBuffer:SetMaxHistoryLines(10)
- 		dl_lootBuffer:AddMessage("Welcome To Dragon Loot \n Type /dl help for help!",255,255,0,1)
- 		dl_lootBuffer:SetAnchorFill(dlLootWindow)
- 		
- 		--[[Set a background to make the window look nice and have a definite shape.
+		--Set a background to make the window look nice and have a definite shape.
 		dl_lootWindow_BG = WINDOW_MANAGER:CreateControl("dlLootWindowBG",dlLootWindow,CT_BACKDROP)
 		dl_lootWindow_BG:SetDimensions( dl_lootWindow:GetWidth() , dl_lootWindow:GetHeight() )
+		dl_lootWindow_BG:SetHidden( true )
 		dl_lootWindow_BG:SetCenterColor(0,0,0,0.5)
 		dl_lootWindow_BG:SetEdgeColor(.1,.1,.1,1)
 		dl_lootWindow_BG:SetEdgeTexture("",8,1,2)
-		dl_lootWindow_BG:SetAnchor(CENTER,dlLootWindow,CENTER,0,0)]]
+		dl_lootWindow_BG:SetAnchor(CENTER,dlLootWindow,CENTER,0,0)
+		
+		dl_lootBuffer = WINDOW_MANAGER:CreateControl("lootedBuffer", dlLootWindow, CT_TEXTBUFFER)
+ 		dl_lootBuffer:SetLinkEnabled( true )
+ 		dl_lootBuffer:SetFont("ZoFontChat")
+ 		dl_lootBuffer:SetHidden(false)
+ 		dl_lootBuffer:SetLineFade(7,3) -- Time until fade, time to fade.
+ 		dl_lootBuffer:SetMaxHistoryLines(10)
+ 		dl_lootBuffer:AddMessage("Welcome To Dragon Loot \n Type \"/dl help\" for help!",255,255,0,1)
+ 		dl_lootBuffer:SetAnchorFill(dlLootWindow)
 	
 	else
 	
@@ -717,25 +723,44 @@ function ShowLootWindow()
 
 end
 
-function CloseLootWindow()
+function ToggleLootWindow(buttonname)
 
-	dl_lootWindow:SetHidden( true )
+		DL.savedVars.LootWindow = (not DL.savedVars.LootWindow)
+	
+		local message = "Dragon Loot: Loot Window  -- " .. ((DL.savedVars.LootWindow) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.	
+		
+		if (DL.savedVars.LootWindow) then
+			dl_lootWindow:SetHidden( false )
+			buttonname:SetText('[X]')
+		else 
+			dl_lootWindow:SetHidden( true )
+			buttonname:SetText('[  ]')
+		end
 
+		d(message) -- Let the player know if it's enabled or disabled.
+		
 end
 
 function LootWindowHandler(message)
-
-	--[[if (lootwindowmessage ~= nil) then
-		lootwindowmessage = message .."\n".. lootwindowmessage
-		dl_lootItems:SetText(message)
-	else
-		lootwindowmessage = message
-	end
-	
-	dl_lootItems:SetText(lootwindowmessage)]]
 	
 	dl_lootBuffer:AddMessage(message,255,255,0,2)
+	d(message)
 			
 end
 
-ShowLootWindow()
+function MouseExit(window)
+
+	DL.savedVars.lwX = window:GetLeft()
+	DL.savedVars.lwY = window:GetTop()
+	dl_lootWindow_BG:SetHidden( true )
+	
+end
+
+function ShowFaded()
+
+	dl_lootWindow_BG:SetHidden( false )
+	dl_lootBuffer:ShowFadedLines()
+
+end
+
+--:::::::::::::::::::::::::::::::::::::::::::::::
