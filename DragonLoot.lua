@@ -485,6 +485,7 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
 			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			local message = "You received " .. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
 			d(message) -- Telling the player what they received.
+			LootWindowHandler(message)
 						
 		end
 		
@@ -640,3 +641,101 @@ function StoreBuyReceipt(numID, itemName, entryType, itemQuantity, money, specia
 	end
 	
 end
+
+function ShowLootWindow()
+
+	if (dlLootWindow == nil) then  -- Check to see if the window already exists
+
+		-- Create the top level container for the window, this is what everything below it will bind to.
+		dl_lootWindow = WINDOW_MANAGER:CreateTopLevelWindow("dlLootWindow")
+		dl_lootWindow:SetMouseEnabled( true )
+		dl_lootWindow:SetHidden( false )
+		dl_lootWindow:SetMovable( true )
+		dl_lootWindow:SetDimensions( 300,100 )
+		dl_lootWindow:SetAnchor( TOPLEFT,GuiRoot,TOPLEFT,10,10 )
+		
+		
+		--[[Create the title label for the window 
+		dl_lootWindow_Title = WINDOW_MANAGER:CreateControl("lwTitle",dlLootWindow,CT_LABEL)
+		dl_lootWindow_Title:SetDimensions( dlLootWindow:GetWidth() , 36 )
+		dl_lootWindow_Title:SetFont( "ZoFontWindowTitle" )
+		dl_lootWindow_Title:SetColor(1,1,1,1)
+		dl_lootWindow_Title:SetHorizontalAlignment(1)
+		dl_lootWindow_Title:SetVerticalAlignment(0)
+		dl_lootWindow_Title:SetText( "Loot Window")
+		dl_lootWindow_Title:SetAnchor(TOP,dl_settings,TOP,0,10)
+		
+		--Set the Close Button at the top of the window.
+		dl_lootWindow_clsBtn = WINDOW_MANAGER:CreateControl("lwClose" , dlLootWindow , CT_BUTTON)
+		dl_lootWindow_clsBtn:SetDimensions( 25 , 25 )
+		dl_lootWindow_clsBtn:SetFont("ZoFontGameBold")
+		dl_lootWindow_clsBtn:SetAnchor(TOPRIGHT,dlLootWindow,TOPRIGHT,-5,5)
+		dl_lootWindow_clsBtn:SetNormalFontColor(1,1,1,1)
+		dl_lootWindow_clsBtn:SetMouseOverFontColor(0.8,0.4,0,1)
+		dl_lootWindow_clsBtn:SetText('[X]')
+		dl_lootWindow_clsBtn:SetState( BSTATE_NORMAL )
+		dl_lootWindow_clsBtn:SetHandler( "OnClicked" , function() CloseLootWindow() end )
+		
+		--[[dl_lootScroll = WINDOW_MANAGER:CreateControl("lootScroll", dlLootWindow, CT_SCROLL)
+		dl_lootScroll:SetVerticalScroll(0)
+		dl_lootScroll:SetHorizontalScroll(0)
+ 		dl_lootScroll:SetScrollBounding(0)
+ 		dl_lootScroll:SetFadeGradient(4, 1, 1, 1)
+ 		dl_lootScroll:SetAnchorFill(dlLootWindow)
+ 		
+ 		--[[dl_lootItems = WINDOW_MANAGER:CreateControl("lootedItems" , lootScroll , CT_LABEL)
+		dl_lootItems:SetFont("ZoFontChat")
+		dl_lootItems:SetColor(255,255,0,1)
+		dl_lootItems:SetAnchorFill(dlLootWindow)
+		--dl_lootItems:SetText("Welcome To Dragon Loot")
+		dl_lootItems:SetHorizontalAlignment(0)
+		dl_lootItems:SetVerticalAlignment(0)
+		dl_lootItems:SetHidden(false)]]
+		
+		dl_lootBuffer = WINDOW_MANAGER:CreateControl("lootedBuffer", dlLootWindow, CT_TEXTBUFFER)
+ 		dl_lootBuffer:GetLinkEnabled( true )
+ 		dl_lootBuffer:SetFont("ZoFontChat")
+ 		dl_lootBuffer:SetHidden(false)
+ 		dl_lootBuffer:SetLineFade(5,2)
+ 		dl_lootBuffer:SetMaxHistoryLines(10)
+ 		dl_lootBuffer:AddMessage("Welcome To Dragon Loot \n Type /dl help for help!",255,255,0,1)
+ 		dl_lootBuffer:SetAnchorFill(dlLootWindow)
+ 		
+ 		--[[Set a background to make the window look nice and have a definite shape.
+		dl_lootWindow_BG = WINDOW_MANAGER:CreateControl("dlLootWindowBG",dlLootWindow,CT_BACKDROP)
+		dl_lootWindow_BG:SetDimensions( dl_lootWindow:GetWidth() , dl_lootWindow:GetHeight() )
+		dl_lootWindow_BG:SetCenterColor(0,0,0,0.5)
+		dl_lootWindow_BG:SetEdgeColor(.1,.1,.1,1)
+		dl_lootWindow_BG:SetEdgeTexture("",8,1,2)
+		dl_lootWindow_BG:SetAnchor(CENTER,dlLootWindow,CENTER,0,0)]]
+	
+	else
+	
+		dlLootWindow:SetHidden(false) -- If the window has already been created then show it.
+		
+	end
+
+end
+
+function CloseLootWindow()
+
+	dl_lootWindow:SetHidden( true )
+
+end
+
+function LootWindowHandler(message)
+
+	--[[if (lootwindowmessage ~= nil) then
+		lootwindowmessage = message .."\n".. lootwindowmessage
+		dl_lootItems:SetText(message)
+	else
+		lootwindowmessage = message
+	end
+	
+	dl_lootItems:SetText(lootwindowmessage)]]
+	
+	dl_lootBuffer:AddMessage(message,255,255,0,2)
+			
+end
+
+ShowLootWindow()
