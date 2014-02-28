@@ -2,8 +2,8 @@
 
 Author:		@Qwexton
 File:			DragonLoot.lua
-Version:	Alpha 1.4
-Date:		2-26-2014
+Version:	Alpha 1.5
+Date:		2-27-2014
 
 ]]--
 
@@ -11,15 +11,17 @@ Date:		2-26-2014
 
 TODO:
 	
-	Create function to handle store buy receipts and buy back receipts ( EVENT_BUYBACK_RECEIPT )
-	Create separate frame to send loot messages to.
+	Create function to handle store buy back receipts ( EVENT_BUYBACK_RECEIPT )
+	Create function to handle crafting completions or breakdowns.
+	Figure out how to get loot links working in the loot window.
+	Make loot window resizable
 
 ]]--
 
 --Setting Global Constants
 
 command = "/dl"
-version = 1.4
+version = 1.5
 DL = {}
 	
 --Set default Variables:	
@@ -37,9 +39,10 @@ DL.defaultVar =
 	["AutoSell"]		= true,
 	["settingsY"] 		= 300,
 	["settingsX"]		= 500,
-	["lwY"]			= 570,
-	["lwX"]			= 10,
+	["lwY"]			= 670,
+	["lwX"]			= 270,
 	["LootWindow"]		= true,
+	["ChatLoot"]		=true
 }
 
 --Initialized function called from DragonLoot.xml in the addon folder
@@ -150,7 +153,6 @@ function ShowSettings()
 	end
 
 end
-
 
 --Dynamically creates labels and buttons on the dlSettings window.
 function MakeLabels()
@@ -326,6 +328,35 @@ function MakeLabels()
 		
 		dl_settings_lootwindow_btn:SetState( BSTATE_NORMAL )
 		dl_settings_lootwindow_btn:SetHandler( "OnClicked" , function() ToggleLootWindow(dl_settings_lootwindow_btn) end)	
+		
+		--:::::Loot Window Label and Button
+		--Incrementing the Y anchor again, for the next label and button.
+		lbl_offsetY = (lbl_offsetY + tileoffset)
+		btn_offsetY = (btn_offsetY + tileoffset)
+
+		dl_settings_chatloot = WINDOW_MANAGER:CreateControl("dlChatLoot",dlSettings,CT_LABEL)
+		dl_settings_chatloot:SetDimensions( dlSettings:GetWidth() * 0.6 , 30 )
+		dl_settings_chatloot:SetText("Show Loot in Chat Window................................")
+		dl_settings_chatloot:SetFont("ZoFontGame")
+		dl_settings_chatloot:SetColor(1,1,1,1)
+		dl_settings_chatloot:SetVerticalAlignment(1)
+		dl_settings_chatloot:SetAnchor(TOPLEFT, dlSettings ,TOPLEFT,lbl_offsetX,lbl_offsetY)
+	
+		dl_settings_chatloot_btn = WINDOW_MANAGER:CreateControl("dlChatLootbtn" , dlSettings , CT_BUTTON)
+		dl_settings_chatloot_btn:SetDimensions( 25 , 25 )
+		dl_settings_chatloot_btn:SetFont("ZoFontGameBold")
+		dl_settings_chatloot_btn:SetAnchor(TOPRIGHT,dlSettings,TOPRIGHT,btn_offsetX,btn_offsetY)
+		dl_settings_chatloot_btn:SetNormalFontColor(1,1,1,1)
+		dl_settings_chatloot_btn:SetMouseOverFontColor(0,1,0,1)
+		
+		if (DL.savedVars.ChatLoot) then
+			dl_settings_chatloot_btn:SetText('[X]')
+		else 
+			dl_settings_chatloot_btn:SetText('[  ]')
+		end
+		
+		dl_settings_chatloot_btn:SetState( BSTATE_NORMAL )
+		dl_settings_chatloot_btn:SetHandler( "OnClicked" , function() ToggleChatLoot(dl_settings_chatloot_btn) end)			
 
 end
 
@@ -348,6 +379,7 @@ function ShowHelp()
 		
 end
 
+--Toggle Sell Receipts for player
 function ToggleSell(buttonname)
 	
 	DL.savedVars.Sell = (not DL.savedVars.Sell)  --Flip the boolean value to true or false
@@ -364,6 +396,23 @@ function ToggleSell(buttonname)
 
 end
 
+function ToggleChatLoot(buttonname)
+	
+	DL.savedVars.ChatLoot = (not DL.savedVars.ChatLoot)  --Flip the boolean value to true or false
+	local message = "Dragon Loot: Chat Loot -- " .. ((DL.savedVars.ChatLoot) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.
+	
+
+		if (DL.savedVars.ChatLoot) then
+			buttonname:SetText('[X]')
+		else 
+			buttonname:SetText('[  ]')
+		end
+
+	d(message) -- Let the player know if it's enabled or disabled.
+
+end
+
+--Toggle Buy Receipts for player
 function ToggleBuy(buttonname)
 	
 	DL.savedVars.Buy = (not DL.savedVars.Buy)  --Flip the boolean value to true or false
@@ -380,6 +429,7 @@ function ToggleBuy(buttonname)
 
 end
 
+--Toggle AutoSell trash to vendor
 function ToggleAutoSell(buttonname)
 	
 	DL.savedVars.AutoSell = (not DL.savedVars.AutoSell)  --Flip the boolean value to true or false
@@ -672,11 +722,11 @@ function StoreBuyReceipt(numID, itemName, entryType, itemQuantity, money, specia
 	
 end
 
-
 --[[::::::::::::::::::::::::::::::::::::::::::::
 :::::::Starting Loot Window for Showing Loot::::
 ::::::::::::::::::::::::::::::::::::::::::::::::]]--
 
+-- The loot window which displays loot for the player gets made when our addon is loaded, we hide it if they don't want to see it.
 function ShowLootWindow()
 
 	if (dlLootWindow == nil) then  -- Check to see if the window already exists
@@ -685,19 +735,25 @@ function ShowLootWindow()
 		dl_lootWindow = WINDOW_MANAGER:CreateTopLevelWindow("dlLootWindow")
 		dl_lootWindow:SetMouseEnabled( true )
 		
-			if (DL.savedVars.LootWindow) then
+			if (DL.savedVars.LootWindow) then -- Should we show the window or not based on user settings.
 				dl_lootWindow:SetHidden( false )
 			else
 				dl_lootWindow:SetHidden( true )
 			end
 			
 		dl_lootWindow:SetMovable( true )
-		dl_lootWindow:SetHandler( "OnMouseExit" , function() MouseExit(dl_lootWindow) end)
-		dl_lootWindow:SetHandler( "OnMouseEnter", function() ShowFaded() end)
-		dl_lootWindow:SetDimensions( 400,100 )
+		dl_lootWindow:SetHandler( "OnMouseExit" , function() MouseExit(dl_lootWindow) end) -- Call function when mouse exits window
+		dl_lootWindow:SetHandler( "OnMouseEnter", function() ShowFaded() end) --If mouse goes in window call function to show faded text and background.
+		dl_lootWindow:SetHandler("OnMouseWheel", function(self,delta)  -- Handles the mousewheel scrolling in the window
+
+			dl_lootBuffer:MoveScrollPosition(delta) --changes scroll position of  text window based on mouse delta
+
+		end)		
+		
+		dl_lootWindow:SetDimensions( 500,89 )
 		dl_lootWindow:SetAnchor( TOPLEFT, GuiRoot, TOPLEFT, DL.savedVars.lwX, DL.savedVars.lwY )
 		
-		--Set a background to make the window look nice and have a definite shape.
+		--Set a background to make the window look nice and have a definite shape when moused over.
 		dl_lootWindow_BG = WINDOW_MANAGER:CreateControl("dlLootWindowBG",dlLootWindow,CT_BACKDROP)
 		dl_lootWindow_BG:SetDimensions( dl_lootWindow:GetWidth() , dl_lootWindow:GetHeight() )
 		dl_lootWindow_BG:SetHidden( true )
@@ -706,14 +762,15 @@ function ShowLootWindow()
 		dl_lootWindow_BG:SetEdgeTexture("",8,1,2)
 		dl_lootWindow_BG:SetAnchor(CENTER,dlLootWindow,CENTER,0,0)
 		
+		--This control buffers text and handles all text related data being sent to it. Every time we want to send a message we call the :AddMessage attribute.
 		dl_lootBuffer = WINDOW_MANAGER:CreateControl("lootedBuffer", dlLootWindow, CT_TEXTBUFFER)
  		dl_lootBuffer:SetLinkEnabled( true )
  		dl_lootBuffer:SetFont("ZoFontChat")
  		dl_lootBuffer:SetHidden(false)
- 		dl_lootBuffer:SetLineFade(7,3) -- Time until fade, time to fade.
- 		dl_lootBuffer:SetMaxHistoryLines(10)
+ 		dl_lootBuffer:SetLineFade(7,3) -- Sets fade timers for text- Time until fade, time to fade. 
+ 		dl_lootBuffer:SetMaxHistoryLines(40)
  		dl_lootBuffer:AddMessage("Welcome To Dragon Loot \n Type \"/dl help\" for help!",255,255,0,1)
- 		dl_lootBuffer:SetAnchorFill(dlLootWindow)
+		dl_lootBuffer:SetAnchorFill(dlLootWindow)
 	
 	else
 	
@@ -723,9 +780,10 @@ function ShowLootWindow()
 
 end
 
+--You can turn the window off and on from the settings menu.
 function ToggleLootWindow(buttonname)
 
-		DL.savedVars.LootWindow = (not DL.savedVars.LootWindow)
+		DL.savedVars.LootWindow = (not DL.savedVars.LootWindow) --Switch values (boolean)
 	
 		local message = "Dragon Loot: Loot Window  -- " .. ((DL.savedVars.LootWindow) and "Enabled" or "Disabled")  -- Check the value for enabled or disabled.	
 		
@@ -741,21 +799,32 @@ function ToggleLootWindow(buttonname)
 		
 end
 
+--This function now handles all displays to the user including chat and the loot window.
 function LootWindowHandler(message)
 	
-	dl_lootBuffer:AddMessage(message,255,255,0,2)
-	d(message)
-			
-end
-
-function MouseExit(window)
-
-	DL.savedVars.lwX = window:GetLeft()
-	DL.savedVars.lwY = window:GetTop()
-	dl_lootWindow_BG:SetHidden( true )
+	--[[We dont check if the player wants loot to go to the loot window because we are assuming
+	     if they do not want to see it then the window is hidden.  Loot still goes to the window so if they turn it back on
+	     the history will be there.]]
+	dl_lootBuffer:AddMessage(message,255,165,0,1) -- Sends text to loot window
+	
+	if (DL.savedVars.ChatLoot) then --Check if we want to see it in chat.
+		d(message)	--Sends Loot to Chat
+	end
 	
 end
 
+--Handles what happens when the mouse exits the loot window.
+function MouseExit(window)
+
+	DL.savedVars.lwX = window:GetLeft() -- Set player variables for window position
+	DL.savedVars.lwY = window:GetTop() -- Set player variables for window position
+	dl_lootWindow_BG:SetHidden( true ) -- Hide the background again
+	dl_lootBuffer:SetScrollPosition(0) --Set the scroll position to the bottom of the text box.
+
+	
+end
+
+--Shows the background and fadded text lines when the mouse enters the window.
 function ShowFaded()
 
 	dl_lootWindow_BG:SetHidden( false )
@@ -763,4 +832,24 @@ function ShowFaded()
 
 end
 
---:::::::::::::::::::::::::::::::::::::::::::::::
+--::::::::::::::::::::::::::::::::::::::::::::::: For testing colors in the chat windows.
+--[[
+
+function ColorTest()
+
+	for r = 0, 255, 20 do
+	
+		for b = 0, 255, 20 do
+		
+			for g = 0, 255, 20 do
+			
+					dl_lootBuffer:AddMessage( r .. "," ..b..","..g , r,b,g,1)
+					
+			end
+			
+		end
+		
+	end
+
+
+end]]
