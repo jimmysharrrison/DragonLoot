@@ -69,6 +69,7 @@ function OnAddOnLoaded(eventCode, addOnName)
 		DragonLoot:RegisterForEvent(EVENT_OPEN_STORE, SellTrash) -- Registers for player opening a store, then sells trash/grey items.
 		DragonLoot:RegisterForEvent(EVENT_SELL_RECEIPT, StoreSellReceipt) -- Registers for Selling items to vendors.
 		DragonLoot:RegisterForEvent(EVENT_BUY_RECEIPT, StoreBuyReceipt) -- Registers for Buying items from vendor.
+		DragonLoot:RegisterForEvent(EVENT_CRAFT_COMPLETED, CraftedItem) -- Registers for Crafted Items.
 		SLASH_COMMANDS[command] = commandHandler -- The slash command handler for chat commands.
 		ShowLootWindow()
 	
@@ -561,7 +562,7 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
   
 		if (DetermineLootType(itemName, lootType)) then  --Check to see if player wants to see the loot
 		
-			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
+			local itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			local message = "You received " .. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
 			LootWindowHandler(message) -- Tell Player what they recieved.
 						
@@ -571,10 +572,10 @@ function OnLootedItem (numID, lootedBy, itemName, quantity, itemSound, lootType,
  
 	  if (DL.savedVars.Group) then  -- Checking to see if we are displaying group loot to the player
 	  
-		if (DetermineLootType(itemName, lootType)) then  -- Check to see if the player wants to see the loot.
+		if (DetermineLootType(itemName, lootType)) then  -- Check to see if the player wants to see the loot based on quality.
 		
-			lootedBy = lootedBy:gsub("%^%a+","")  -- The character names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
-			itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
+			local lootedBy = lootedBy:gsub("%^%a+","")  -- The character names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
+			local itemName = itemName:gsub("%^%a+","") -- The item names have some weird characters in them so we are using a regex substitution to get rid of the weird characters.
 			local message = lootedBy .. " received ".. itemName.. " x"..quantity -- Concatenating the quantity with the item name into a new variable.
 			LootWindowHandler(message) -- Telling the player what they received.
 			
@@ -627,7 +628,7 @@ local colorwheel =
 	-- Calling a function to take apart the link and get the color for us, so we can use the color to figure out how rare the item is.
 	if (lootType == LOOT_TYPE_ITEM) then	  
 		
-		text, color, split = ZO_LinkHandler_ParseLink (itemName)  -- getting the color of the item.
+		local text, color, split = ZO_LinkHandler_ParseLink (itemName)  -- getting the color of the item.
 		--d("Color Code:  "..color.. "  LootType:  " ..lootType)  --Debugging code.
 	
 	elseif (lootType == LOOT_TYPE_QUEST_ITEM) then --Check to see if it's a quest item.
@@ -673,7 +674,7 @@ function SellTrash()
 	
 		local icon, bagslots = GetBagInfo(BAG_BACKPACK) -- Get the number of bag slots from the backpack using the BAG_BACKPACK constant. GetBagInfo returns Icon and # of slots integer
 		
-		for i=1 , bagslots  do -- Look through the bag to sell all the trash items
+		for i=1 , bagslots, 1  do -- Look through the bag to sell all the trash items
 		
 			local itemType = GetItemType(BAG_BACKPACK, i) -- Get the item type from GetItemType()
 			
@@ -684,7 +685,7 @@ function SellTrash()
 				
 			end
 			
-			i = (i + 1) --Increment for the bag slot index.
+			--i = (i + 1) --Increment for the bag slot index.
 		
 		end
 		
@@ -716,6 +717,7 @@ function StoreBuyReceipt(numID, itemName, entryType, itemQuantity, money, specia
 			local itemName = itemName:gsub("%^%a+","") --Fix the name because of weird characters.
 			local message = "You have bought ".. itemName.." x"..itemQuantity.." for "..money.. " gold." --Create Message
 			LootWindowHandler(message) --Send Message
+			
 		end
 		
 	end
@@ -744,13 +746,15 @@ function ShowLootWindow()
 		dl_lootWindow:SetMovable( true )
 		dl_lootWindow:SetHandler( "OnMouseExit" , function() MouseExit(dl_lootWindow) end) -- Call function when mouse exits window
 		dl_lootWindow:SetHandler( "OnMouseEnter", function() ShowFaded() end) --If mouse goes in window call function to show faded text and background.
+		--dl_lootWindow:SetHandler( "OnMouseUp", function() MouseExit(dl_lootWindow) end)
+		dl_lootWindow:SetHandler("OnMouseDown", function() dl_lootBuffer:AddMessage("Move Me .........................",255,165,0,1) end)
 		dl_lootWindow:SetHandler("OnMouseWheel", function(self,delta)  -- Handles the mousewheel scrolling in the window
 
 			dl_lootBuffer:MoveScrollPosition(delta) --changes scroll position of  text window based on mouse delta
 
 		end)		
 		
-		dl_lootWindow:SetDimensions( 500,89 )
+		dl_lootWindow:SetDimensions( 450,89 )
 		dl_lootWindow:SetAnchor( TOPLEFT, GuiRoot, TOPLEFT, DL.savedVars.lwX, DL.savedVars.lwY )
 		
 		--Set a background to make the window look nice and have a definite shape when moused over.
@@ -767,6 +771,7 @@ function ShowLootWindow()
  		dl_lootBuffer:SetLinkEnabled( true )
  		dl_lootBuffer:SetFont("ZoFontChat")
  		dl_lootBuffer:SetHidden(false)
+		dl_lootBuffer:SetClearBufferAfterFadeout(true)
  		dl_lootBuffer:SetLineFade(7,3) -- Sets fade timers for text- Time until fade, time to fade. 
  		dl_lootBuffer:SetMaxHistoryLines(40)
  		dl_lootBuffer:AddMessage("Welcome To Dragon Loot \n Type \"/dl help\" for help!",255,255,0,1)
@@ -818,19 +823,45 @@ function MouseExit(window)
 
 	DL.savedVars.lwX = window:GetLeft() -- Set player variables for window position
 	DL.savedVars.lwY = window:GetTop() -- Set player variables for window position
+		
 	dl_lootWindow_BG:SetHidden( true ) -- Hide the background again
 	dl_lootBuffer:SetScrollPosition(0) --Set the scroll position to the bottom of the text box.
-
 	
 end
 
---Shows the background and fadded text lines when the mouse enters the window.
+--Shows the background and faded text lines when the mouse enters the window.
 function ShowFaded()
 
 	dl_lootWindow_BG:SetHidden( false )
-	dl_lootBuffer:ShowFadedLines()
+	dl_lootBuffer:ShowFadedLines()	
 
 end
+
+function CraftedItem()
+
+
+	--local craftedName, icon, stack, sellPrice, usageRequirement, equipType, itemType, itemStyle, quality, sound, itemInstanceID = GetLastCraftingResultItemInfo()
+	local itemInfo = {GetLastCraftingResultItemInfo()}
+
+	for i=1 , bagslots, 1  do
+		
+		local itemName = GetItemName(BAG_BACKPACK, i) 
+			
+		if (itemName == itemInfo[1]) then 
+		
+			local itemLink = GetItemLink(BAG_BACKPACK, i, LINK_STYLE_DEFAULT) 
+			break
+				
+		end
+		
+	end
+
+	local message = "You have crafted ".. itemLink .." x"..itemInfo[3]
+
+	LootWindowHandler(message)
+	
+end
+
 
 --::::::::::::::::::::::::::::::::::::::::::::::: For testing colors in the chat windows.
 --[[
