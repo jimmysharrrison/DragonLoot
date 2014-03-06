@@ -4,4 +4,8 @@
 
 DragonLoot.lua
 DragonLoot.xml
+features/Settings.lua
+features/Toggle.lua
+features/Gold.lua
+features/LootWindow.lua
 
