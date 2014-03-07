@@ -1,3 +1,12 @@
+--[[
+
+Author:		@Qwexton
+File:			Gold.lua
+Version:	Alpha 1.6
+Date:		3-06-2014
+
+]]--
+
 --Function called when a money event is triggered from EVENT_MONEY_UPDATE
 function DL.CashMoney (numId, newMoney, oldMoney, reason)
 

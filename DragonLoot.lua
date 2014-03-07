@@ -2,8 +2,8 @@
 
 Author:		@Qwexton
 File:			DragonLoot.lua
-Version:	Alpha 1.5
-Date:		2-27-2014
+Version:	Alpha 1.6
+Date:		3-06-2014
 
 ]]--
 
@@ -11,38 +11,45 @@ Date:		2-27-2014
 
 TODO:
 	
-	Create function to handle store buy back receipts ( EVENT_BUYBACK_RECEIPT )
-	Create function to handle crafting completions or breakdowns.
 	Figure out how to get loot links working in the loot window.
-	Make loot window resizable
+	
+	--Created Buy Back function for store buy backs.
+	--Created Crafting function to handle crafting items.
+	--Made Loot Window Re-sizable.
+	--Fixed some behavior issues with the loot window.
+	--After loot window lines fade they are erased so they only keep a current history of loot.
+	--Fixed variable scoping in a number of places to keep addon from colliding with other addons.
+	--General house keeping to make dealing with the size of the addon easier.
 
 ]]--
 
 --Setting Global Constants
 DL = {}
 DL.command = "/dl"
-DL.version = 1.5
+DL.version = 1.6
 
 	
 --Set default Variables:	
 	
 DL.defaultVar =
 {
-	["Gold"]		= true,
-	["Group"]		= true,
-	["Trash"]		= true,
-	["Normal"]		= true,
-	["Magic"]		= true,
-	["Quest"]		= true,
-	["Sell"]		= true,
-	["Buy"]			= true,
+	["Gold"]			= true,
+	["Group"]			= true,
+	["Trash"]			= true,
+	["Normal"]			= true,
+	["Magic"]			= true,
+	["Quest"]			= true,
+	["Sell"]				= true,
+	["Buy"]				= true,
 	["AutoSell"]		= true,
 	["settingsY"] 		= 300,
 	["settingsX"]		= 500,
-	["lwY"]			= 670,
-	["lwX"]			= 270,
+	["lwY"]				= 670,
+	["lwX"]				= 270,
 	["LootWindow"]		= true,
-	["ChatLoot"]		=true
+	["LWWidth"]			= 450,
+	["LWHeight"]			= 89, 
+	["ChatLoot"]			=true
 }
 
 --Initialized function called from DragonLoot.xml in the addon folder
@@ -70,6 +77,7 @@ function DL.OnAddOnLoaded(eventCode, addOnName)
 		DragonLoot:RegisterForEvent(EVENT_SELL_RECEIPT, DL.StoreSellReceipt) -- Registers for Selling items to vendors.
 		DragonLoot:RegisterForEvent(EVENT_BUY_RECEIPT, DL.StoreBuyReceipt) -- Registers for Buying items from vendor.
 		DragonLoot:RegisterForEvent(EVENT_CRAFT_COMPLETED, DL.CraftedItem) -- Registers for Crafted Items.
+		DragonLoot:RegisterForEvent(EVENT_BUYBACK_RECEIPT, DL.BuyBackReceipt)
 		SLASH_COMMANDS[DL.command] = DL.commandHandler -- The slash command handler for chat commands.
 		DL.ShowLootWindow()
 	
@@ -254,6 +262,19 @@ function DL.StoreBuyReceipt(numID, itemName, entryType, itemQuantity, money, spe
 	
 end
 
+--Handles Items bought Back from Vendor
+function DL.BuyBackReceipt(numID, itemLink, quantity, money, sound)
+
+	if (DL.savedVars.Buy) then
+	
+		local itemName = itemLink:gsub("%^%a+","")
+		local message = "You bought back " ..itemName.. " x" .. quantity .." for "..money.." gold."
+		DL.LootWindowHandler(message)
+		
+	end
+	
+end
+
 
 function DL.CraftedItem()
 
@@ -269,7 +290,7 @@ function DL.CraftedItem()
 		if (itemName == itemInfo[1]) then 
 		
 			local itemLink = GetItemLink(BAG_BACKPACK, i, LINK_STYLE_DEFAULT) 
-			local itemLink = itemLink:gsub("%^%a+","")
+			itemLink = itemLink:gsub("%^%a+","")
 			local message = "You have crafted ".. itemLink .." x"..itemInfo[3]
 			DL.LootWindowHandler(message)
 			break

@@ -1,3 +1,12 @@
+--[[
+
+Author:		@Qwexton
+File:			Toggle.lua
+Version:	Alpha 1.6
+Date:		3-06-2014
+
+]]--
+
 --Toggle Buy Receipts for player
 function DL.ToggleBuy(buttonname)
 	

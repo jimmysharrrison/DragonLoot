@@ -1,3 +1,12 @@
+--[[
+
+Author:		@Qwexton
+File:			Settings.lua
+Version:	Alpha 1.6
+Date:		3-06-2014
+
+]]--
+
 --Function to make the settings window, we don't make the window unless someone calls it from the chat command.
 function DL.ShowSettings()
 
@@ -254,7 +263,7 @@ function DL.MakeLabels()
 		end
 		
 		dl_settings_chatloot_btn:SetState( BSTATE_NORMAL )
-		dl_settings_chatloot_btn:SetHandler( "OnClicked" , function() DL.ToggleChatLoot(dl_settings_chatloot_btn) end)			
+		dl_settings_chatloot_btn:SetHandler( "OnClicked" , function() DL.ToggleChatLoot(dl_settings_chatloot_btn) end)	
 
 end
 
